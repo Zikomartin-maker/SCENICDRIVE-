@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>ScenicDrive v3 — Scenic Corridor Prototype</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    :root{--bg:#08131f;--panel:#0e1d2c;--panel2:#13283a;--text:#f6fbff;--muted:#9fb2c5;--green:#76d348;--blue:#2589ff;--line:#26445d;--white:#fff;--danger:#ff6b63;--amber:#ffca62}
+    *{box-sizing:border-box} html,body{margin:0;height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+    button,input{font:inherit} #app{height:100%;display:grid;grid-template-columns:380px 1fr}
+    aside{padding:18px;background:linear-gradient(180deg,#08131f,#0b1825);overflow:auto;border-right:1px solid #173049;z-index:2}
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:14px}.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--green),var(--blue));display:grid;place-items:center;font-weight:950}.brand h1{font-size:22px;margin:0}.tag{font-size:12px;color:var(--muted)}
+    .version{font-size:11px;color:#bfe6aa;border:1px solid #416b35;background:#102617;border-radius:999px;padding:4px 8px;margin-left:auto}
+    .searchbox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:10px}.label{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 6px}
+    .field{width:100%;background:#fff;color:#102235;border:0;border-radius:12px;padding:13px 14px;margin:5px 0;font-weight:750;outline:none}.field:focus{box-shadow:0 0 0 3px rgba(37,137,255,.25)}
+    .swap{display:block;margin:-2px auto;background:var(--panel2);color:#fff;border:1px solid var(--line);width:34px;height:34px;border-radius:50%;cursor:pointer;font-weight:900}
+    .routes{margin-top:10px}.route{border:1px solid var(--line);background:var(--panel);border-radius:15px;padding:12px;margin:8px 0;cursor:pointer;transition:.15s}.route:hover{transform:translateY(-1px)}.route.active{border-color:var(--green);box-shadow:0 0 0 1px var(--green) inset;background:#11261e}.route.disabled{opacity:.45;cursor:not-allowed}.route .top{display:flex;justify-content:space-between;gap:12px;font-weight:850}.route small{color:var(--muted);display:block;margin-top:3px}
+    .sliderbox{margin-top:14px;padding:14px;background:var(--panel);border-radius:16px;border:1px solid var(--line)}input[type=range]{width:100%;accent-color:var(--green)}.chips{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}.note{margin-top:8px;color:#cce8bb;font-size:12px;line-height:1.35}
+    .cta{width:100%;margin-top:13px;padding:14px;border:0;border-radius:14px;background:linear-gradient(90deg,var(--blue),#1d6fe7);color:#fff;font-size:16px;font-weight:900;cursor:pointer}.cta:disabled{opacity:.55;cursor:wait}.secondary{background:transparent;border:1px solid var(--line);color:var(--text);font-size:13px;margin-top:8px;padding:10px}
+    .status{font-size:12px;color:var(--muted);min-height:18px;margin:10px 2px 0}.status.bad{color:#ffaaa5}.status.good{color:#bfe6aa}.legal{font-size:10px;color:#71889c;line-height:1.35;margin:14px 2px 0}
+    main{position:relative;min-width:0}.mapwrap,#map{height:100%;width:100%}.hud{position:absolute;z-index:1000;top:18px;left:18px;right:18px;display:flex;gap:12px;pointer-events:none}.card{pointer-events:auto;background:rgba(7,20,33,.93);backdrop-filter:blur(8px);border:1px solid #29445b;border-radius:18px;padding:14px 16px;box-shadow:0 12px 35px rgba(0,0,0,.22)}
+    .turn{flex:1}.score{width:250px;border-color:#4ea72d}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:850}.big{font-size:27px;font-weight:950}.green{color:var(--green)}.muted{color:var(--muted)}
+    .bottom{position:absolute;z-index:1000;bottom:18px;left:18px;right:18px;display:flex;gap:12px;align-items:stretch}.trip{flex:1}.triprow{display:flex;gap:28px;align-items:center;flex-wrap:wrap}.tripitem{min-width:115px}.pill{margin-left:auto;background:#fff;color:#102235;padding:10px 16px;border-radius:999px;font-weight:900;border:0;cursor:pointer}.pill:disabled{opacity:.55;cursor:not-allowed}
+    .legend{position:absolute;z-index:1000;right:20px;top:160px;width:255px}.legend .card{margin-bottom:10px}.legend h3{margin:0 0 5px;font-size:14px}.legend p{margin:0;color:var(--muted);font-size:12px;line-height:1.35}.badge{display:inline-block;font-size:10px;font-weight:900;color:#1a250d;background:var(--amber);border-radius:999px;padding:3px 7px;margin-bottom:6px}.via{font-size:11px;color:#bfe6aa;margin-top:5px;line-height:1.3}
+    .loading{display:none;position:absolute;z-index:2000;inset:0;background:rgba(5,13,21,.35);place-items:center;pointer-events:none}.loading.show{display:grid}.spinner{width:52px;height:52px;border-radius:50%;border:5px solid rgba(255,255,255,.25);border-top-color:#fff;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:800px){
+      html,body{height:auto;min-height:100%;overflow-x:hidden}
+      #app{height:auto;min-height:100dvh;display:block}
+      aside{border-right:0;border-bottom:1px solid #173049;padding:11px;max-height:none;overflow:visible}
+      main{height:68vh;min-height:520px}
+      .brand{margin-bottom:7px}
+      .searchbox{padding:8px}
+      .field{padding:10px 11px}
+      .routes{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+      .route{margin:0;padding:9px}
+      .route small{display:none}
+      .sliderbox{margin-top:8px;padding:10px}
+      .legend{display:none}
+      .score{width:145px}
+      .score .muted{display:none}
+      .big{font-size:20px}
+      .hud{top:8px;left:8px;right:8px;gap:7px}
+      .card{padding:10px 12px;border-radius:14px}
+      .bottom{left:8px;right:8px;bottom:8px}
+      .triprow{gap:12px}
+      .tripitem{min-width:72px}
+      .pill{margin-left:0}
+      .legal{display:none}
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <div class="brand"><div class="logo">SD</div><div><h1>ScenicDrive</h1><div class="tag">The journey matters.</div></div><span class="version">v3 SCENIC ENGINE</span></div>
+    <div class="searchbox">
+      <div class="label">Plan your journey</div>
+      <input id="from" class="field" value="London, UK" placeholder="Start location" autocomplete="off" />
+      <button id="swap" class="swap" title="Swap start and destination">⇅</button>
+      <input id="to" class="field" value="Dorset, UK" placeholder="Destination" autocomplete="off" />
+    </div>
+
+    <div class="routes" id="routes">
+      <div class="route" data-type="fastest"><div class="top"><span>🚀 Fastest</span><span id="fastTime">—</span></div><small>Quickest real road route</small></div>
+      <div class="route active" data-type="scenic"><div class="top"><span>🏞️ Most Scenic</span><span id="scenicTime">—</span></div><small>More character within your time limit</small></div>
+      <div class="route" data-type="country"><div class="top"><span>🌳 Countryside</span><span id="countryTime">—</span></div><small>Prototype preference for slower, winding roads</small></div>
+      <div class="route" data-type="coastal"><div class="top"><span>🌊 Coastal</span><span id="coastalTime">—</span></div><small>Scenery engine coming next</small></div>
+    </div>
+
+    <div class="sliderbox">
+      <strong>How much extra time will you allow?</strong>
+      <input id="extra" type="range" min="0" max="180" step="15" value="30"/>
+      <div class="chips"><span>0m</span><span>+60m</span><span>+120m</span><span>+180m</span></div>
+      <div class="note" id="extraText">Find the best available route within +30 minutes of fastest.</div>
+    </div>
+
+    <button class="cta" id="showBtn">Find my route ➜</button>
+    <button class="cta secondary" id="locBtn">Use my current location</button>
+    <div class="status" id="status">Ready. Try any two towns, cities or postcodes.</div>
+    <div class="legal">Prototype routing uses OpenStreetMap-based services. Place search is submitted only when you press Find, not as autocomplete. A production app should use its own or a commercial routing/geocoding service.</div>
+  </aside>
+
+  <main>
+    <div id="map"></div>
+    <div class="loading" id="loading"><div class="spinner"></div></div>
+    <div class="hud">
+      <div class="card turn"><div class="eyebrow">Selected route</div><div class="big" id="routeName">Most Scenic</div><div class="green" id="routeReason">Real roads • prototype scenic ranking</div></div>
+      <div class="card score"><div class="green"><strong>Scenic Score</strong></div><div class="big" id="score">—</div><div class="muted" id="scoreText">Calculate a journey to compare real alternatives</div></div>
+    </div>
+    <div class="legend">
+      <div class="card"><span class="badge">SCENIC ENGINE v0.3</span><h3>What the score means</h3><p>v3 actively creates scenic corridor candidates through known beautiful areas, then compares them with normal road alternatives. The score rewards scenic anchors, bends and lower-speed road character.</p></div>
+      <div class="card"><h3>🛣️ Real road geometry</h3><p>The blue/green line follows routable roads rather than the straight demonstration points used in v1.</p></div>
+    </div>
+    <div class="bottom"><div class="card trip"><div class="triprow">
+      <div class="tripitem"><div class="big" id="time">—</div><div class="muted">Estimated journey</div></div>
+      <div class="tripitem"><div class="big green" id="detour">—</div><div class="muted">vs fastest</div></div>
+      <div class="tripitem"><div class="big" id="distance">—</div><div class="muted">Distance</div></div>
+      <button class="pill" id="navBtn" disabled>Open route</button>
+    </div></div></div>
+  </main>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(() => {
+  const map = L.map('map',{zoomControl:false}).setView([51.0,-1.55],7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+
+  const $=id=>document.getElementById(id);
+  const modeLabels={fastest:'Fastest',scenic:'Most Scenic',country:'Countryside',coastal:'Coastal'};
+  const modeColors={fastest:'#2589ff',scenic:'#66b93d',country:'#8fba3f',coastal:'#1c90d7'};
+  let current='scenic', routes=[], selectedRoute=null, routeLine=null, markers=[], endpoints=null;
+
+  function setStatus(text,kind=''){ $('status').textContent=text; $('status').className='status '+kind; }
+  function loading(on){ $('loading').classList.toggle('show',on); $('showBtn').disabled=on; }
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  function fmtTime(sec){ const mins=Math.round(sec/60); const h=Math.floor(mins/60),m=mins%60; return h?`${h}h ${String(m).padStart(2,'0')}m`:`${m} min`; }
+  function fmtDistance(m){ const mi=m/1609.344; return mi>=10?`${Math.round(mi)} mi`:`${mi.toFixed(1)} mi`; }
+  function extraMins(route){ if(!routes.length)return 0; return Math.max(0,Math.round((route.duration-routes[0].duration)/60)); }
+
+  async function geocode(q){
+    const coord=q.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+    if(coord) return {lat:+coord[1],lon:+coord[2],name:'Current location'};
+    const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=gb,fr,de,it,es,ch,at,be,nl,ie&addressdetails=1&q='+encodeURIComponent(q);
+    const res=await fetch(url,{headers:{'Accept':'application/json'}}); if(!res.ok) throw new Error('Place search failed');
+    const data=await res.json(); if(!data.length) throw new Error(`Could not find “${q}”`);
+    return {lat:+data[0].lat,lon:+data[0].lon,name:data[0].display_name};
+  }
+
+  async function routeOSRM(a,b,via=[]){
+    const pts=[a,...via,b];
+    const coords=pts.map(p=>`${p.lon},${p.lat}`).join(';');
+    const alternatives=via.length?0:3;
+    const url=`https://router.project-osrm.org/route/v1/driving/${coords}?alternatives=${alternatives}&steps=true&overview=full&geometries=geojson`;
+    const res=await fetch(url); if(!res.ok) throw new Error('Routing service failed');
+    const data=await res.json(); if(data.code!=='Ok'||!data.routes?.length) throw new Error('No drivable route found');
+    return data.routes.sort((x,y)=>x.duration-y.duration);
+  }
+
+  const scenicAnchors=[
+    {name:'New Forest',lat:50.8755,lon:-1.6320,tags:['forest','national park']},
+    {name:'Cranborne Chase',lat:50.9580,lon:-1.9900,tags:['AONB','downs']},
+    {name:'Shaftesbury',lat:51.0059,lon:-2.1960,tags:['historic town','hills']},
+    {name:'Dorchester',lat:50.7112,lon:-2.4412,tags:['Dorset','countryside']},
+    {name:'Lulworth',lat:50.6187,lon:-2.2490,tags:['Jurassic Coast','coast']},
+    {name:'Corfe Castle',lat:50.6396,lon:-2.0567,tags:['Purbeck','historic village']},
+    {name:'Wareham',lat:50.6870,lon:-2.1100,tags:['Purbeck','riverside']},
+    {name:'Brockenhurst',lat:50.8193,lon:-1.5730,tags:['New Forest','village']},
+    {name:'Lyndhurst',lat:50.8727,lon:-1.5766,tags:['New Forest','village']},
+    {name:'Beaulieu',lat:50.8209,lon:-1.4513,tags:['New Forest','village']}
+  ];
+
+  function haversine(a,b){
+    const R=6371,rad=x=>x*Math.PI/180;
+    const dLat=rad(b.lat-a.lat),dLon=rad(b.lon-a.lon);
+    const q=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+    return 2*R*Math.asin(Math.sqrt(q));
+  }
+
+  function corridorDistance(a,b,p){
+    const direct=haversine(a,b);
+    return haversine(a,p)+haversine(p,b)-direct;
+  }
+
+  function candidateAnchors(a,b){
+    return scenicAnchors
+      .map(p=>({...p,off:corridorDistance(a,b,p)}))
+      .filter(p=>p.off<85)
+      .sort((x,y)=>x.off-y.off)
+      .slice(0,7);
+  }
+
+  async function buildScenicCandidates(a,b,fastest){
+    const anchors=candidateAnchors(a,b), candidates=[];
+    // Single scenic anchors.
+    for(const p of anchors.slice(0,5)){
+      try{
+        const rr=await routeOSRM(a,b,[p]);
+        if(rr[0]) candidates.push(Object.assign(rr[0],{scenicVia:[p],anchorBonus:10}));
+      }catch(e){}
+      await sleep(220);
+    }
+    // A few two-anchor scenic corridors, useful on longer journeys.
+    const pairs=[];
+    for(let i=0;i<Math.min(anchors.length,5);i++) for(let j=i+1;j<Math.min(anchors.length,6);j++){
+      const p=anchors[i],q=anchors[j];
+      if(haversine(a,p)<haversine(a,q)) pairs.push([p,q]); else pairs.push([q,p]);
+    }
+    for(const pair of pairs.slice(0,5)){
+      try{
+        const rr=await routeOSRM(a,b,pair);
+        if(rr[0]) candidates.push(Object.assign(rr[0],{scenicVia:pair,anchorBonus:18}));
+      }catch(e){}
+      await sleep(220);
+    }
+    return candidates.filter(r=>r.duration <= fastest.duration + 3*3600);
+  }
+
+  function curvatureScore(route){
+    const c=route.geometry.coordinates; if(c.length<3)return 0;
+    const sampleStep=Math.max(1,Math.floor(c.length/180)); let turns=0,total=0,prev=null;
+    for(let i=sampleStep;i<c.length-sampleStep;i+=sampleStep){
+      const a=c[i-sampleStep],b=c[i],d=c[i+sampleStep];
+      const ang1=Math.atan2(b[1]-a[1],b[0]-a[0]),ang2=Math.atan2(d[1]-b[1],d[0]-b[0]);
+      let delta=Math.abs(ang2-ang1); if(delta>Math.PI)delta=2*Math.PI-delta;
+      total++; if(delta>.18)turns++;
+    }
+    return total?turns/total:0;
+  }
+
+  function heuristic(route){
+    const avgKph=(route.distance/1000)/(route.duration/3600);
+    const bend=curvatureScore(route);
+    const slower=Math.max(0,Math.min(1,(95-avgKph)/55));
+    const detour=Math.min(extraMins(route)/90,1);
+    const scenicBonus=route.anchorBonus||0;
+    return Math.round(Math.max(35,Math.min(98,48+bend*22+slower*14+detour*5+scenicBonus)));
+  }
+
+  function allowedRoutes(){ const max=+$('extra').value; return routes.filter(r=>extraMins(r)<=max); }
+  function pick(type){
+    if(!routes.length)return null; const allowed=allowedRoutes();
+    if(type==='fastest')return routes[0];
+    const pool=allowed.length?allowed:[routes[0]];
+    if(type==='scenic')return [...pool].sort((a,b)=>heuristic(b)-heuristic(a))[0];
+    if(type==='country')return [...pool].sort((a,b)=>((b.anchorBonus||0)-(a.anchorBonus||0)) || (curvatureScore(b)-curvatureScore(a)) || (b.duration-a.duration))[0];
+    if(type==='coastal')return [...pool].sort((a,b)=>heuristic(b)-heuristic(a))[0];
+  }
+
+  function updateModeTimes(){
+    if(!routes.length)return;
+    const timeIds={fastest:'fastTime',scenic:'scenicTime',country:'countryTime',coastal:'coastalTime'};
+    for(const type of ['fastest','scenic','country','coastal']){
+      const r=pick(type);
+      const el=$(timeIds[type]);
+      if(el) el.textContent=r?fmtTime(r.duration):'—';
+    }
+  }
+
+  function draw(type){
+    current=type; document.querySelectorAll('.route').forEach(el=>el.classList.toggle('active',el.dataset.type===type));
+    if(!routes.length){ $('routeName').textContent=modeLabels[type]; return; }
+    selectedRoute=pick(type); if(!selectedRoute)return;
+    if(routeLine)map.removeLayer(routeLine);
+    const latlngs=selectedRoute.geometry.coordinates.map(([lon,lat])=>[lat,lon]);
+    routeLine=L.polyline(latlngs,{color:modeColors[type],weight:7,opacity:.92}).addTo(map);
+    map.fitBounds(routeLine.getBounds(),{padding:[45,45]});
+    const e=extraMins(selectedRoute),sc=heuristic(selectedRoute);
+    $('routeName').textContent=modeLabels[type]; $('time').textContent=fmtTime(selectedRoute.duration); $('distance').textContent=fmtDistance(selectedRoute.distance);
+    $('detour').textContent=e?`+${e} min`:'+0 min'; $('score').textContent=sc+' / 100';
+    const avg=Math.round((selectedRoute.distance/1000)/(selectedRoute.duration/3600));
+    $('scoreText').textContent= type==='fastest' ? `Speed-first route • avg ${avg} km/h` : `Experimental scenic heuristic • avg ${avg} km/h`;
+    const via=selectedRoute.scenicVia?.map(x=>x.name).join(' → ');
+    $('routeReason').textContent= via ? `Scenic corridor via ${via}` : type==='coastal' ? 'Real route • coastline preference' : type==='country' ? 'Real route • countryside preference' : type==='fastest' ? 'Fastest OSRM road route' : 'Best available scenic alternative';
+    $('navBtn').disabled=false;
+  }
+
+  async function findRoute(){
+    const from=$('from').value.trim(),to=$('to').value.trim(); if(!from||!to){setStatus('Please enter both a start and destination.','bad');return;}
+    loading(true); setStatus('Finding start location…');
+    try{
+      const a=await geocode(from); await sleep(1100); setStatus('Finding destination…'); const b=await geocode(to);
+      setStatus('Calculating fastest road alternatives…');
+      const baseRoutes=await routeOSRM(a,b);
+      const fastest=baseRoutes[0];
+      setStatus('Searching scenic corridors, parks and villages…');
+      const scenicRoutes=await buildScenicCandidates(a,b,fastest);
+      routes=[...baseRoutes,...scenicRoutes].sort((x,y)=>x.duration-y.duration); endpoints={a,b};
+      markers.forEach(m=>map.removeLayer(m)); markers=[L.marker([a.lat,a.lon]).addTo(map).bindPopup('Start: '+a.name),L.marker([b.lat,b.lon]).addTo(map).bindPopup('Destination: '+b.name)];
+      updateModeTimes(); draw(current);
+      const n=scenicRoutes.length;
+      setStatus(`Found ${baseRoutes.length} normal route${baseRoutes.length===1?'':'s'} + ${n} scenic candidate${n===1?'':'s'}.`, 'good');
+    }catch(err){ console.error(err); setStatus(err.message||'Something went wrong while calculating the route.','bad'); }
+    finally{loading(false)}
+  }
+
+  document.querySelectorAll('.route').forEach(el=>el.addEventListener('click',()=>draw(el.dataset.type)));
+  $('extra').addEventListener('input',()=>{ $('extraText').textContent=`Find the best available route within +${$('extra').value} minutes of fastest.`; if(routes.length){updateModeTimes();draw(current);} });
+  $('showBtn').addEventListener('click',findRoute);
+  $('swap').addEventListener('click',()=>{const a=$('from').value;$('from').value=$('to').value;$('to').value=a;});
+  $('locBtn').addEventListener('click',()=>{
+    if(!navigator.geolocation){setStatus('Location is not supported in this browser.','bad');return;}
+    setStatus('Getting your current location…'); navigator.geolocation.getCurrentPosition(pos=>{ $('from').value=`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`; setStatus('Current location added. Press Find my route.','good'); },()=>setStatus('I could not access your location.','bad'),{enableHighAccuracy:true,timeout:10000});
+  });
+  $('navBtn').addEventListener('click',()=>{ if(!selectedRoute||!endpoints)return; const {a,b}=endpoints; window.open(`https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${a.lat}%2C${a.lon}%3B${b.lat}%2C${b.lon}`,'_blank','noopener'); });
+  ['from','to'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter')findRoute();}));
+})();
+</script>
+</body>
+</html>
